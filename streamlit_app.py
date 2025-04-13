@@ -2,48 +2,42 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Iraq AI", layout="centered")
-
+st.set_page_config(page_title="🇮🇶 Iraq AI - دردش مع شخصية عراقية", layout="centered")
 st.markdown("""<h1 style='text-align: center;'>🇮🇶 Iraq AI - دردش مع شخصية عراقية</h1>""", unsafe_allow_html=True)
 
-personality = st.selectbox("👤 اختر شخصية:", [
-    "الحجّيّة", "الحجي", "ابن المنطقة", "الشاعر", "السياسي", "العسكري", "الفاشنيستا"
-])
+st.markdown("### 👤 اختر شخصية:")
+character = st.selectbox("", ["الحجية", "الحجي", "المعمم", "العسكري", "المراهق"])
 
-question = st.text_input("✍️ اكتب سؤالك هنا 👇", "")
+st.markdown("### ✍️ اكتب سؤالك هنا 👇")
+user_input = st.text_input("", "هلا")
 
 if st.button("💬 أرسل"):
-    if not question.strip():
-        st.warning("الرجاء كتابة سؤال.")
-    else:
-        api_key = "Sk-c73742bbdd1e4d7f9cf171c1a1ea20ab"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}"
-        }
-
-        system_prompt = f"أجب على السؤال وكأنك {personality}، باللهجة العراقية، بأسلوب فكاهي وقريب للقلب."
-
-        data = {
-            "model": "deepseek-chat",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": question}
-            ]
-        }
+    if user_input:
+        system_prompt = f"رد علي كأنك {character} عراقي باللهجة المحلية، وكن مرحاً وثقافياً بنفس الوقت."
 
         try:
             response = requests.post(
                 "https://api.deepseek.com/v1/chat/completions",
-                headers=headers,
-                json=data
+                headers={
+                    "Authorization": "Bearer sk-aa6408149c574b0eab3f169ec65e6ff6",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "deepseek-chat",
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_input}
+                    ]
+                }
             )
-            result = response.json()
 
+            result = response.json()
             if "choices" in result:
-                answer = result["choices"][0]["message"]["content"]
-                st.markdown(f"👤 **{personality}**: {answer}")
+                reply = result["choices"][0]["message"]["content"]
+                st.markdown(f"👤 **{character}**: {reply}")
             else:
-                st.error(f"❌ خطأ: {result.get('error', {}).get('message', 'استجابة غير معروفة')}")
+                st.error("❌ خطأ: لم يتم العثور على رد من النموذج.")
         except Exception as e:
-            st.error(f"⚠️ حدث خطأ أثناء الاتصال بـ DeepSeek: {e}")
+            st.error(f"❌ خطأ أثناء الاتصال بـ DeepSeek: {e}")
+    else:
+        st.warning("🟡 الرجاء كتابة رسالة أولاً.")
