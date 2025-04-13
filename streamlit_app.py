@@ -2,43 +2,48 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="Iraq AI", page_icon="🇮🇶")
-st.markdown("<h1 style='text-align: center;'>🇮🇶 Iraq AI - دردش مع شخصية عراقية 🇮🇶</h1>", unsafe_allow_html=True)
+st.set_page_config(page_title="Iraq AI", layout="centered")
 
-characters = {
-    "الحجيّة": "إنتِ أم عراقية قديمة، شنو ردج؟",
-    "الحجي": "إنت حجّي من الكبار.. شترد عليه؟",
-    "ابن المنطقة": "رد كشباب منطقتك القح",
-    "العسكري": "إنت ضابط قديم.. علمهم شلون",
-    "السياسي": "رد سياسي ذكي ومحسوب",
-    "الشاعر": "رد بصيغة بيت شعري عراقي",
-}
+st.markdown("""<h1 style='text-align: center;'>🇮🇶 Iraq AI - دردش مع شخصية عراقية</h1>""", unsafe_allow_html=True)
 
-st.markdown("### 👤 اختر شخصية:")
-selected_character = st.selectbox("", list(characters.keys()))
+personality = st.selectbox("👤 اختر شخصية:", [
+    "الحجّيّة", "الحجي", "ابن المنطقة", "الشاعر", "السياسي", "العسكري", "الفاشنيستا"
+])
 
-st.markdown("### ✍️ اكتب سؤالك هنا 👇")
-user_input = st.text_input("", placeholder="هلة")
+question = st.text_input("✍️ اكتب سؤالك هنا 👇", "")
 
 if st.button("💬 أرسل"):
-    with st.spinner("جاري توليد الرد..."):
+    if not question.strip():
+        st.warning("الرجاء كتابة سؤال.")
+    else:
+        api_key = "Sk-c73742bbdd1e4d7f9cf171c1a1ea20ab"
         headers = {
-            "Authorization": f"Bearer Sk-c73742bbdd1e4d7f9cf171c1a1ea20ab",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
         }
 
-        payload = {
+        system_prompt = f"أجب على السؤال وكأنك {personality}، باللهجة العراقية، بأسلوب فكاهي وقريب للقلب."
+
+        data = {
             "model": "deepseek-chat",
             "messages": [
-                {"role": "system", "content": characters[selected_character]},
-                {"role": "user", "content": user_input}
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": question}
             ]
         }
 
-        response = requests.post("https://api.deepseek.com/v1/chat/completions", headers=headers, json=payload)
+        try:
+            response = requests.post(
+                "https://api.deepseek.com/v1/chat/completions",
+                headers=headers,
+                json=data
+            )
+            result = response.json()
 
-        if response.status_code == 200:
-            reply = response.json()["choices"][0]["message"]["content"]
-            st.markdown(f"**{selected_character}:** {reply}")
-        else:
-            st.error(f"❌ Error {response.status_code}: {response.text}")
+            if "choices" in result:
+                answer = result["choices"][0]["message"]["content"]
+                st.markdown(f"👤 **{personality}**: {answer}")
+            else:
+                st.error(f"❌ خطأ: {result.get('error', {}).get('message', 'استجابة غير معروفة')}")
+        except Exception as e:
+            st.error(f"⚠️ حدث خطأ أثناء الاتصال بـ DeepSeek: {e}")
