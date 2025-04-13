@@ -1,59 +1,51 @@
+
 import streamlit as st
 import openai
 
-# ✅ Correct DeepSeek API setup
+# Set DeepSeek API credentials
 openai.api_key = "Sk-aa6408149c574b0eab3f169ec65e6ff6"
-openai.base_url = "https://api.deepseek.com/v1"
+openai.api_base = "https://api.deepseek.com/v1"
 
-# Iraqi personality styles
-characters = {
-    "الحجيّة": "أنت الحجيّة، امرأة عراقية كبيرة بالعمر، حكيمة، درامية، ودمك خفيف...",
-    "الحجي": "أنت الحجي، رجل عراقي كبير بالعمر، حكيم ومتدين...",
-    "ابن المنطقة": "أنت ابن المنطقة، شاب شعبي يحب المزاح والسوالف باللهجة العراقية...",
-    "الفاشنيستا": "أنت فاشنيستا عراقية تحبين الميكب، التيك توك، وتتكلمين بطريقة عصرية مليانة ايموجي...",
-    "الشاعر": "أنت شاعر عراقي تحب الكلام العاطفي والرمزي، تجاوب بكل رقي...",
-    "العسكري": "أنت عسكري عراقي، كلامك واضح، صارم ومباشر...",
-    "السياسي": "أنت سياسي عراقي محترف، تتكلم بلغة رسمية ومليئة بالتحليل والمجاملات..."
-}
-
-# Streamlit UI setup
-st.set_page_config(page_title="Iraq GPT", layout="centered")
+st.set_page_config(page_title="Iraq AI", page_icon="🇮🇶")
 st.title("🇮🇶 Iraq AI - دردش مع شخصية عراقية")
 
-selected_character = st.selectbox("اختر شخصية:", list(characters.keys()))
-user_input = st.text_input("✍️ اكتب سؤالك هنا")
+characters = {
+    "الحجيّة": "إنت تتكلم ويه حجية من أهل الكرخ، تحب اللّف والدوران، بس طيبة!",
+    "الحجي": "رجل كبير بالعمر من بغداد، دايمًا ينصح الشباب ويحب يحجي عن الماضي.",
+    "ابن المنطقة": "شاب عراقي طيب ودايمًا يمون، يستخدم كلمات من الشارع العراقي.",
+    "الفاشينيستا": "بنية تحب الماركات وتتكلم بطريقه فاشن، بس بعده بيها طيبة عراقية.",
+    "الشاعر": "يتكلم بطريقة شعرية، يجاوب دومًا بكلمات موزونة.",
+    "العسكري": "يتكلم بحزم وانضباط وكأنّه ضابط، بس عنده جانب فكاهي.",
+    "السياسي": "يتكلم مثل السياسيين العراقيين، يحاول يلف ويدور وما ينطي جواب واضح 😂"
+}
 
-# Initialize session state for chat history
+character = st.selectbox("👤 اختر شخصية:", list(characters.keys()))
+st.markdown("✍️ اكتب سؤالك هنا 👇")
+user_input = st.text_input("", placeholder="هلا")
+
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-col1, col2 = st.columns(2)
-with col1:
-    send = st.button("💬 أرسل")
-with col2:
-    clear = st.button("🗑️ مسح المحادثة")
+if st.button("💬 أرسل"):
+    if user_input:
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        system_prompt = characters[character]
+        try:
+            response = openai.chat.completions.create(
+                model="deepseek-chat",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    *st.session_state.chat_history
+                ]
+            )
+            reply = response.choices[0].message.content
+            st.session_state.chat_history.append({"role": "assistant", "content": reply})
+        except Exception as e:
+            st.error(f"خطأ: {str(e)}")
 
-if clear:
+if st.session_state.chat_history:
+    for msg in st.session_state.chat_history:
+        st.write(f"**{'👤' if msg['role']=='user' else '🤖'}**: {msg['content']}")
+
+if st.button("🗑️ مسح المحادثة"):
     st.session_state.chat_history = []
-    st.experimental_rerun()
-
-if send and user_input:
-    messages = [{"role": "system", "content": characters[selected_character]}]
-    messages += st.session_state.chat_history
-    messages.append({"role": "user", "content": user_input})
-
-    response = openai.chat.completions.create(
-        model="deepseek-chat",
-        messages=messages
-    )
-
-    reply = response.choices[0].message.content
-    st.session_state.chat_history.append({"role": "user", "content": user_input})
-    st.session_state.chat_history.append({"role": "assistant", "content": reply})
-
-# Display chat messages
-for msg in st.session_state.chat_history:
-    if msg["role"] == "user":
-        st.markdown(f"**👤 أنت:** {msg['content']}")
-    else:
-        st.markdown(f"**🤖 {selected_character}:** {msg['content']}")
